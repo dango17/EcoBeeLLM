@@ -123,6 +123,53 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &308986779
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 308986781}
+  - component: {fileID: 308986780}
+  m_Layer: 0
+  m_Name: LLMManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &308986780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308986779}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d9d46e3af0be2340b7b9e38600a78e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pythonPath: C:\Users\Daniel\AppData\Local\Programs\Python\Python312\python.exe
+  modelPath: C:\Users\\Daniel\\Documents\GitHub\EcoBeeLLM\Assets\Plugins\harmonious_caramel_model.pth
+  scriptPath: Assets/Plugins/run_model.py
+--- !u!4 &308986781
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308986779}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 35.29769, y: 4.0568037, z: -51.871887}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &559780858
 Animator:
   serializedVersion: 5
@@ -1664,6 +1711,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8906343283465488746}
   - component: {fileID: 559780858}
+  - component: {fileID: 8906343283465488747}
   m_Layer: 0
   m_Name: BarryBee
   m_TagString: Untagged
@@ -4142,6 +4190,19 @@ Transform:
   - {fileID: 1692224904828660188}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -234.119, z: 0}
+--- !u!114 &8906343283465488747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2878046847653306680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bfe352f46d04554ea27341e43fb00a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  modelRunner: {fileID: 308986780}
 --- !u!4 &8927548413343139582
 Transform:
   m_ObjectHideFlags: 0
@@ -4181,3 +4242,4 @@ SceneRoots:
   - {fileID: 963194228}
   - {fileID: 705507995}
   - {fileID: 8906343283465488746}
+  - {fileID: 308986781}
