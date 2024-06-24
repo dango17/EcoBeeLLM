@@ -1,54 +1,101 @@
-using System.Collections;
-using System.Diagnostics;
-using System.IO;
-using System.Collections.Generic;
 using UnityEngine;
-using System;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 public class LLMRunner : MonoBehaviour
 {
-    // Set these paths in the Unity Inspector
-    public string pythonPath = @"C:\Users\Daniel\AppData\Local\Programs\Python\Python312\python.exe"; // Path to your Python executable
-    public string modelPath = @"C:\Users\\Daniel\\Documents\GitHub\EcoBeeLLM\Assets\Plugins\harmonious_caramel_model.pth"; // Path to your saved model
-    public string scriptPath = "Assets/Plugins/run_model.py"; // Path to your Python script
+    public string pythonPath = @"C:\Users\Daniel\AppData\Local\Programs\Python\Python312\python.exe";
+    public string modelPath = @"C:\Users\Daniel\Documents\GitHub\EcoBeeLLM\Assets\Plugins\harmonious_caramel_model.pth";
+    public string scriptPath = "Assets/Plugins/llm_server.py";
 
-    public void RunModel(string prompt)
+    private Process serverProcess;
+    private HttpClient httpClient;
+    private bool isInitialized = false;
+
+    async void Start()
     {
-        // Convert relative paths to absolute paths
-        string absoluteModelPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", modelPath));
-        string absoluteScriptPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", scriptPath));
+        await Initialize();
+    }
+
+    void OnDisable()
+    {
+        StopServer();
+    }
+
+    private async Task Initialize()
+    {
+        StartServer();
+        httpClient = new HttpClient();
+
+        await Task.Delay(5000);
+
+        isInitialized = true;
+        UnityEngine.Debug.Log("LLMRunner initialized");
+    }
+
+
+    private void StartServer()
+    {
+        string absoluteModelPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "..", modelPath));
+        string absoluteScriptPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "..", scriptPath));
 
         ProcessStartInfo start = new ProcessStartInfo();
         start.FileName = pythonPath;
-        start.Arguments = $"\"{absoluteScriptPath}\" \"{absoluteModelPath}\" \"{prompt}\"";
+        start.Arguments = $"\"{absoluteScriptPath}\" \"{absoluteModelPath}\"";
         start.UseShellExecute = false;
+        start.CreateNoWindow = true;
         start.RedirectStandardOutput = true;
         start.RedirectStandardError = true;
 
-        UnityEngine.Debug.Log($"Running command: {start.FileName} {start.Arguments}");
+        serverProcess = new Process();
+        serverProcess.StartInfo = start;
+        serverProcess.OutputDataReceived += (sender, e) => UnityEngine.Debug.Log("Server: " + e.Data);
+        serverProcess.ErrorDataReceived += (sender, e) => UnityEngine.Debug.LogError("Server Error: " + e.Data);
 
-        try
+        serverProcess.Start();
+        serverProcess.BeginOutputReadLine();
+        serverProcess.BeginErrorReadLine();
+    }
+
+    private void StopServer()
+    {
+        if (serverProcess != null && !serverProcess.HasExited)
         {
-            using (Process process = Process.Start(start))
-            {
-                using (StreamReader reader = process.StandardOutput)
-                {
-                    string result = reader.ReadToEnd();
-                    UnityEngine.Debug.Log($"Output: {result}");
-                }
-                using (StreamReader reader = process.StandardError)
-                {
-                    string errors = reader.ReadToEnd();
-                    if (!string.IsNullOrEmpty(errors))
-                    {
-                        UnityEngine.Debug.LogError($"Errors: {errors}");
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            UnityEngine.Debug.LogError($"Error starting process: {e.Message}");
+            serverProcess.Kill();
+            serverProcess.WaitForExit();
+            serverProcess.Dispose();
         }
     }
+
+    public async Task<string> RunModel(string prompt)
+    {
+        if (!isInitialized)
+        {
+            UnityEngine.Debug.LogWarning("LLMRunner not initialized. Initializing now...");
+            await Initialize();
+        }
+
+        var content = new StringContent(JsonConvert.SerializeObject(new { prompt }), Encoding.UTF8, "application/json");
+        try
+        {
+            var response = await httpClient.PostAsync("http://localhost:5000/generate", content);
+            response.EnsureSuccessStatusCode();
+            var responseString = await response.Content.ReadAsStringAsync();
+            var responseObject = JsonConvert.DeserializeObject<GenerationResponse>(responseString);
+            return responseObject.output;
+        }
+        catch (HttpRequestException e)
+        {
+            UnityEngine.Debug.LogError($"Error communicating with server: {e.Message}");
+            return null;
+        }
+    }
+}
+
+public class GenerationResponse
+{
+    public string output { get; set; }
 }
