@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using TMPro; 
+using TMPro;
 
 public class LLMInteraction : MonoBehaviour
 {
@@ -16,14 +16,20 @@ public class LLMInteraction : MonoBehaviour
         public string text;
     }
 
+    [System.Serializable]
+    public class ResponseData
+    {
+        public string response;
+    }
+
     public void Update()
     {
         // Check if the input field is active and the user presses the Enter key
-        if (inputField.isFocused && inputField.text != "" && Input.GetKeyDown(KeyCode.Space))
+        if (inputField.isFocused && inputField.text != "" && Input.GetKeyDown(KeyCode.Insert))
         {
             SendRequestToModel();
             inputField.text = ""; // Optionally clear the field after sending
-            Debug.Log("Sent Prompt!"); 
+            Debug.Log("Sent Prompt!");
         }
     }
 
@@ -34,21 +40,13 @@ public class LLMInteraction : MonoBehaviour
         StartCoroutine(PostRequest(data));
     }
 
-
     IEnumerator PostRequest(InputData inputData)
     {
         string jsonData = JsonUtility.ToJson(inputData);
         Debug.Log("Sending JSON: " + jsonData);
 
-        if (jsonData == "{}")
+        using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, jsonData))
         {
-            Debug.Log("JSON data is empty after serialization.");
-            yield break; // Exit the coroutine if JSON serialization fails
-        }
-
-        using (UnityWebRequest www = UnityWebRequest.Put(url, jsonData))
-        {
-            www.method = UnityWebRequest.kHttpVerbPOST;
             byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonData);
             www.uploadHandler = new UploadHandlerRaw(jsonToSend);
             www.uploadHandler.contentType = "application/json";
@@ -63,7 +61,17 @@ public class LLMInteraction : MonoBehaviour
             else
             {
                 Debug.Log("Received: " + www.downloadHandler.text);
-                responseText.text = www.downloadHandler.text; // Display the response
+                ResponseData responseData = JsonUtility.FromJson<ResponseData>(www.downloadHandler.text);
+                if (responseData == null)
+                {
+                    Debug.Log("Failed to parse JSON response.");
+                }
+                else if (responseText != null)
+                {
+                    responseText.text = responseData.response;
+                    Debug.Log("Response set on UI: " + responseData.response);
+                }
+
             }
         }
     }
