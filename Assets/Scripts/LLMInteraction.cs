@@ -45,7 +45,7 @@ public class LLMInteraction : MonoBehaviour
         string jsonData = JsonUtility.ToJson(inputData);
         Debug.Log("Sending JSON: " + jsonData);
 
-        using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, jsonData))
+        using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, "POST"))
         {
             byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonData);
             www.uploadHandler = new UploadHandlerRaw(jsonToSend);
