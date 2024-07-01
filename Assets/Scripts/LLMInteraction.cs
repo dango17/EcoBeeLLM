@@ -1,14 +1,15 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.UI;
 using TMPro;
+using System.Collections;
+using System.Collections.Generic;
 
 public class LLMInteraction : MonoBehaviour
 {
     public string url = "http://127.0.0.1:5000/predict";
-    public TMP_InputField inputField; // Assuming you have an InputField where users type their queries
-    public TextMeshProUGUI responseText; // UI Text to display responses
+    public TMP_InputField inputField;
+    public TextMeshProUGUI chatLog;
+    public float padding = 0.1f;
 
     [System.Serializable]
     public class InputData
@@ -22,21 +23,48 @@ public class LLMInteraction : MonoBehaviour
         public string response;
     }
 
-    public void Update()
+    private List<string> conversationHistory = new List<string>();
+
+    void Start()
     {
-        // Check if the input field is active and the user presses the Enter key
+        string initialGreeting = "Barry Bee: How can I assist your eco needs today?";
+        AppendToChatLog(initialGreeting);
+    }
+
+    void Update()
+    {
         if (inputField.isFocused && inputField.text != "" && Input.GetKeyDown(KeyCode.Insert))
         {
-            SendRequestToModel();
-            inputField.text = ""; // Optionally clear the field after sending
-            Debug.Log("Sent Prompt!");
+            string userInput = inputField.text;
+            inputField.text = "";
+            SendRequestToModel(userInput);
+            AppendToChatLog("User: " + userInput);
         }
     }
 
-    // This method could be called by pressing a button
-    public void SendRequestToModel()
+    void AppendToChatLog(string message)
     {
-        InputData data = new InputData { text = inputField.text };
+        string name = message.Substring(0, message.IndexOf(':') + 1);
+        string restOfMessage = message.Substring(message.IndexOf(':') + 1);
+
+        if (message.StartsWith("User:"))
+        {
+            message = string.Format("<color=#FF0000>{0}</color>{1}", name, restOfMessage);
+        }
+        else if (message.StartsWith("Barry Bee:"))
+        {
+            message = string.Format("<color=#FFFF00>{0}</color>{1}", name, restOfMessage);
+        }
+
+        conversationHistory.Add(message);
+        int newlineCount = Mathf.CeilToInt(padding * 10);
+        string paddingStr = new string('\n', newlineCount);
+        chatLog.text = string.Join(paddingStr, conversationHistory.ToArray());
+    }
+
+    public void SendRequestToModel(string userInput)
+    {
+        InputData data = new InputData { text = userInput };
         StartCoroutine(PostRequest(data));
     }
 
@@ -45,10 +73,9 @@ public class LLMInteraction : MonoBehaviour
         string jsonData = JsonUtility.ToJson(inputData);
         Debug.Log("Sending JSON: " + jsonData);
 
-        using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, "POST"))
+        using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, jsonData))
         {
-            byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonData);
-            www.uploadHandler = new UploadHandlerRaw(jsonToSend);
+            www.uploadHandler = new UploadHandlerRaw(new System.Text.UTF8Encoding().GetBytes(jsonData));
             www.uploadHandler.contentType = "application/json";
             www.downloadHandler = new DownloadHandlerBuffer();
 
@@ -66,12 +93,11 @@ public class LLMInteraction : MonoBehaviour
                 {
                     Debug.Log("Failed to parse JSON response.");
                 }
-                else if (responseText != null)
+                else if (chatLog != null)
                 {
-                    responseText.text = responseData.response;
+                    AppendToChatLog("Barry Bee: " + responseData.response);
                     Debug.Log("Response set on UI: " + responseData.response);
                 }
-
             }
         }
     }
