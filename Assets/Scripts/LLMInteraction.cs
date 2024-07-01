@@ -11,24 +11,12 @@ public class LLMInteraction : MonoBehaviour
     public TextMeshProUGUI chatLog;
     public float padding = 0.1f;
 
-    [System.Serializable]
-    public class InputData
-    {
-        public string text;
-    }
-
-    [System.Serializable]
-    public class ResponseData
-    {
-        public string response;
-    }
-
     private List<string> conversationHistory = new List<string>();
+    private Coroutine thinkingAnimation;
 
     void Start()
     {
-        string initialGreeting = "Barry Bee: How can I assist your eco needs today?";
-        AppendToChatLog(initialGreeting);
+        AppendToChatLog(FormatMessage("Barry Bee: How can I assist your eco needs today?", "Barry Bee"));
     }
 
     void Update()
@@ -37,29 +25,24 @@ public class LLMInteraction : MonoBehaviour
         {
             string userInput = inputField.text;
             inputField.text = "";
+            AppendToChatLog(FormatMessage("User: " + userInput, "User"));
+            thinkingAnimation = StartCoroutine(ThinkingAnimation());
             SendRequestToModel(userInput);
-            AppendToChatLog("User: " + userInput);
         }
     }
 
-    void AppendToChatLog(string message)
+    IEnumerator ThinkingAnimation()
     {
-        string name = message.Substring(0, message.IndexOf(':') + 1);
-        string restOfMessage = message.Substring(message.IndexOf(':') + 1);
-
-        if (message.StartsWith("User:"))
+        AppendToChatLog(FormatMessage("Barry Bee: *Thinking*", "Barry Bee")); 
+        int dotCount = 1;
+        while (true)
         {
-            message = string.Format("<color=#FF0000>{0}</color>{1}", name, restOfMessage);
+            string updatedThinkingMessage = FormatMessage("Barry Bee: *Thinking" + new string('.', dotCount) + "*", "Barry Bee");
+            conversationHistory[conversationHistory.Count - 1] = updatedThinkingMessage; // Only update the last message, which is thinking
+            UpdateChatLog();
+            dotCount = (dotCount % 3) + 1;
+            yield return new WaitForSeconds(0.5f);
         }
-        else if (message.StartsWith("Barry Bee:"))
-        {
-            message = string.Format("<color=#FFFF00>{0}</color>{1}", name, restOfMessage);
-        }
-
-        conversationHistory.Add(message);
-        int newlineCount = Mathf.CeilToInt(padding * 10);
-        string paddingStr = new string('\n', newlineCount);
-        chatLog.text = string.Join(paddingStr, conversationHistory.ToArray());
     }
 
     public void SendRequestToModel(string userInput)
@@ -71,8 +54,6 @@ public class LLMInteraction : MonoBehaviour
     IEnumerator PostRequest(InputData inputData)
     {
         string jsonData = JsonUtility.ToJson(inputData);
-        Debug.Log("Sending JSON: " + jsonData);
-
         using (UnityWebRequest www = UnityWebRequest.PostWwwForm(url, jsonData))
         {
             www.uploadHandler = new UploadHandlerRaw(new System.Text.UTF8Encoding().GetBytes(jsonData));
@@ -83,22 +64,51 @@ public class LLMInteraction : MonoBehaviour
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.Log("Error: " + www.error);
+                conversationHistory[conversationHistory.Count - 1] = FormatMessage("Barry Bee: Error receiving data.", "Barry Bee");
             }
             else
             {
-                Debug.Log("Received: " + www.downloadHandler.text);
-                ResponseData responseData = JsonUtility.FromJson<ResponseData>(www.downloadHandler.text);
-                if (responseData == null)
-                {
-                    Debug.Log("Failed to parse JSON response.");
-                }
-                else if (chatLog != null)
-                {
-                    AppendToChatLog("Barry Bee: " + responseData.response);
-                    Debug.Log("Response set on UI: " + responseData.response);
-                }
+                string responseText = www.downloadHandler.text;
+                ResponseData responseData = JsonUtility.FromJson<ResponseData>(responseText);
+                conversationHistory[conversationHistory.Count - 1] = FormatMessage("Barry Bee: " + responseData.response, "Barry Bee");
             }
+
+            StopCoroutine(thinkingAnimation); // Ensure the thinking animation is stopped correctly
+            UpdateChatLog(); // Refresh the chat log to show the final message
         }
     }
+
+    void AppendToChatLog(string message)
+    {
+        conversationHistory.Add(message);
+        UpdateChatLog();
+    }
+
+    void UpdateChatLog()
+    {
+        int newlineCount = Mathf.CeilToInt(padding * 10);  
+        string paddingStr = new string('\n', newlineCount);
+        chatLog.text = string.Join(paddingStr, conversationHistory);
+    }
+
+    string FormatMessage(string message, string speaker)
+    {
+        string name = message.Substring(0, message.IndexOf(':') + 1);
+        string restOfMessage = message.Substring(message.IndexOf(':') + 1);
+        return speaker == "User" ? string.Format("<color=#FF0000>{0}</color>{1}", name, restOfMessage) :
+                                   string.Format("<color=#FFFF00>{0}</color>{1}", name, restOfMessage);
+    }
+
+    [System.Serializable]
+    public class InputData
+    {
+        public string text;
+    }
+
+    [System.Serializable]
+    public class ResponseData
+    {
+        public string response;
+    }
 }
+
