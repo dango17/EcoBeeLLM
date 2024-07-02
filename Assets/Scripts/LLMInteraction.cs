@@ -3,10 +3,12 @@ using UnityEngine.Networking;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using DSO;
 
 public class LLMInteraction : MonoBehaviour
 {
     public string url = "http://127.0.0.1:5000/predict";
+    public BarryAnimations barryAnimations;
     public TMP_InputField inputField;
     public TextMeshProUGUI chatLog;
     public float padding = 0.1f;
@@ -71,12 +73,14 @@ public class LLMInteraction : MonoBehaviour
                 string responseText = www.downloadHandler.text;
                 ResponseData responseData = JsonUtility.FromJson<ResponseData>(responseText);
                 conversationHistory[conversationHistory.Count - 1] = FormatMessage("Barry Bee: " + responseData.response, "Barry Bee");
+                barryAnimations.StartExcitedBob();
             }
 
-            StopCoroutine(thinkingAnimation); // Ensure the thinking animation is stopped correctly
-            UpdateChatLog(); // Refresh the chat log to show the final message
+            StopCoroutine(thinkingAnimation);
+            UpdateChatLog();
         }
     }
+
 
     void AppendToChatLog(string message)
     {
@@ -97,6 +101,18 @@ public class LLMInteraction : MonoBehaviour
         string restOfMessage = message.Substring(message.IndexOf(':') + 1);
         return speaker == "User" ? string.Format("<color=#FF0000>{0}</color>{1}", name, restOfMessage) :
                                    string.Format("<color=#FFFF00>{0}</color>{1}", name, restOfMessage);
+    }
+
+    public void OnSendButtonPressed()
+    {
+        if (!string.IsNullOrEmpty(inputField.text))
+        {
+            string userInput = inputField.text;
+            inputField.text = ""; 
+            AppendToChatLog(FormatMessage("User: " + userInput, "User")); 
+            thinkingAnimation = StartCoroutine(ThinkingAnimation()); 
+            SendRequestToModel(userInput); 
+        }
     }
 
     [System.Serializable]
