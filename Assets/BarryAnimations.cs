@@ -16,32 +16,27 @@ namespace DSO
         private Vector3 startPosition;
         private Coroutine currentAnimation;
 
-        void Start()
-        {
+        void Start(){
             startPosition = transform.position;
             StartNormalBop();
         }
 
-        void StartNormalBop()
-        {
+        void StartNormalBop() {
             if (currentAnimation != null)
                 StopCoroutine(currentAnimation);
             currentAnimation = StartCoroutine(BopAnimation(normalAmplitude, normalFrequency));
         }
 
-        IEnumerator BopAnimation(float targetAmplitude, float targetFrequency)
-        {
+        IEnumerator BopAnimation(float targetAmplitude, float targetFrequency){
             float startTime = Time.time;
-            float currentAmplitude = targetAmplitude; // Initialize with target to avoid NaN issues
-            float currentFrequency = targetFrequency; // Start with target frequency for consistent results
+            float currentAmplitude = targetAmplitude; 
+            float currentFrequency = targetFrequency; 
 
-            // Ensure currentAmplitude is safely calculated
             float sineValue = Mathf.Sin(Time.time * currentFrequency);
-            if (Mathf.Abs(sineValue) > 0.0001) // Check to avoid division by a very small number
+            if (Mathf.Abs(sineValue) > 0.0001) 
                 currentAmplitude = (transform.position.y - startPosition.y) / sineValue;
 
-            while (Time.time - startTime < transitionDuration)
-            {
+            while (Time.time - startTime < transitionDuration){
                 currentAmplitude = Mathf.Lerp(currentAmplitude, targetAmplitude, (Time.time - startTime) / transitionDuration);
                 currentFrequency = Mathf.Lerp(currentFrequency, targetFrequency, (Time.time - startTime) / transitionDuration);
                 float newY = startPosition.y + Mathf.Sin(Time.time * currentFrequency) * currentAmplitude;
@@ -49,9 +44,7 @@ namespace DSO
                 yield return null;
             }
 
-            // Continuously apply the bop with target settings after the transition
-            while (true)
-            {
+            while (true){
                 float newY = startPosition.y + Mathf.Sin(Time.time * targetFrequency) * targetAmplitude;
                 transform.position = new Vector3(startPosition.x, newY, startPosition.z);
                 yield return null;
@@ -59,8 +52,7 @@ namespace DSO
         }
 
 
-        public void StartExcitedBob()
-        {
+        public void StartExcitedBob(){
             if (currentAnimation != null)
                 StopCoroutine(currentAnimation);
             currentAnimation = StartCoroutine(BopAnimation(excitedAmplitude, excitedFrequency));
